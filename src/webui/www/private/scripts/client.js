@@ -490,7 +490,8 @@ window.addEventListener("DOMContentLoaded", () => {
         const categoryList = document.getElementById("categoryFilterList");
         if (!categoryList)
             return;
-        categoryList.getChildren().each(c => c.destroy());
+
+        [...categoryList.children].forEach((el) => { el.destroy(); });
 
         const categoryItemTemplate = document.getElementById("categoryFilterItem");
 
@@ -611,7 +612,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (tagFilterList === null)
             return;
 
-        tagFilterList.getChildren().each(c => c.destroy());
+        [...tagFilterList.children].forEach((el) => { el.destroy(); });
 
         const tagItemTemplate = document.getElementById("tagFilterItem");
 
@@ -664,7 +665,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (trackerFilterList === null)
             return;
 
-        trackerFilterList.getChildren().each(c => c.destroy());
+        [...trackerFilterList.children].forEach((el) => { el.destroy(); });
 
         const trackerItemTemplate = document.getElementById("trackerFilterItem");
 
@@ -1514,7 +1515,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
     let prop_h = LocalPreferences.get("properties_height_rel");
     if (prop_h !== null)
-        prop_h = prop_h.toFloat() * Window.getSize().y;
+        prop_h = Number(prop_h) * Window.getSize().y;
     else
         prop_h = Window.getSize().y / 2.0;
     new MochaUI.Panel({
