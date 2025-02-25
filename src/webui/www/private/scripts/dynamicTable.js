@@ -89,7 +89,6 @@ window.qBittorrent.DynamicTable ??= (() => {
             this.setupCommonEvents();
             this.setupHeaderEvents();
             this.setupHeaderMenu();
-            this.setSortedColumnIcon(this.sortedColumn, null, (this.reverseSort === "1"));
             this.setupAltRow();
         },
 
@@ -600,19 +599,21 @@ window.qBittorrent.DynamicTable ??= (() => {
         updateTableHeaders: function() {
             this.updateHeader(this.hiddenTableHeader);
             this.updateHeader(this.fixedTableHeader);
+            this.setSortedColumnIcon(this.sortedColumn, null, (this.reverseSort === "1"));
         },
 
         updateHeader: function(header) {
             const ths = this.getRowCells(header);
             for (let i = 0; i < ths.length; ++i) {
                 const th = ths[i];
-                th._this = this;
-                th.title = this.columns[i].caption;
-                th.textContent = this.columns[i].caption;
-                th.style.cssText = `width: ${this.columns[i].width}px; ${this.columns[i].style}`;
-                th.columnName = this.columns[i].name;
-                th.classList.add(`column_${th.columnName}`);
-                th.classList.toggle("invisible", ((this.columns[i].visible === "0") || this.columns[i].force_hide));
+                if (th.columnName !== this.columns[i].name) {
+                    th.title = this.columns[i].caption;
+                    th.textContent = this.columns[i].caption;
+                    th.style.cssText = `width: ${this.columns[i].width}px; ${this.columns[i].style}`;
+                    th.columnName = this.columns[i].name;
+                    th.className = `column_${th.columnName}`;
+                    th.classList.toggle("invisible", ((this.columns[i].visible === "0") || this.columns[i].force_hide));
+                }
             }
         },
 
@@ -1231,9 +1232,7 @@ window.qBittorrent.DynamicTable ??= (() => {
             // progress
             this.columns["progress"].updateTd = function(td, row) {
                 const progress = this.getRowValue(row);
-                let progressFormatted = (progress * 100).round(1);
-                if ((progressFormatted === 100.0) && (progress !== 1.0))
-                    progressFormatted = 99.9;
+                const progressFormatted = window.qBittorrent.Misc.toFixedPointString((progress * 100), 1);
 
                 const div = td.firstElementChild;
                 if (div !== null) {
@@ -1752,7 +1751,7 @@ window.qBittorrent.DynamicTable ??= (() => {
                     td.append(span);
                 }
 
-                span.style.backgroundImage = `url('images/flags/${country_code ?? "xx"}.svg')`;
+                span.style.backgroundImage = `url('images/flags/${country_code || "xx"}.svg')`;
                 span.textContent = country;
                 td.title = country;
             };
@@ -1782,10 +1781,7 @@ window.qBittorrent.DynamicTable ??= (() => {
             // progress
             this.columns["progress"].updateTd = function(td, row) {
                 const progress = this.getRowValue(row);
-                let progressFormatted = (progress * 100).round(1);
-                if ((progressFormatted === 100.0) && (progress !== 1.0))
-                    progressFormatted = 99.9;
-                progressFormatted += "%";
+                const progressFormatted = `${window.qBittorrent.Misc.toFixedPointString((progress * 100), 1)}%`;
                 td.textContent = progressFormatted;
                 td.title = progressFormatted;
             };
@@ -2058,7 +2054,11 @@ window.qBittorrent.DynamicTable ??= (() => {
                         break;
                 }
 
-                td.className = statusClass;
+                for (const c of [...td.classList]) {
+                    if (c.startsWith("tracker"))
+                        td.classList.remove(c);
+                }
+                td.classList.add(statusClass);
                 td.textContent = status;
                 td.title = status;
             };
@@ -3263,7 +3263,8 @@ window.qBittorrent.DynamicTable ??= (() => {
         initColumnsFunctions: function() {
             this.columns["timestamp"].updateTd = function(td, row) {
                 const date = new Date(this.getRowValue(row) * 1000).toLocaleString();
-                td.set({ text: date, title: date });
+                td.textContent = date;
+                td.title = date;
             };
 
             this.columns["type"].updateTd = function(td, row) {
@@ -3291,7 +3292,8 @@ window.qBittorrent.DynamicTable ??= (() => {
                         addClass = "logUnknown";
                         break;
                 }
-                td.set({ text: logLevel, title: logLevel });
+                td.textContent = logLevel;
+                td.title = logLevel;
                 td.closest("tr").className = `logTableRow${addClass}`;
             };
         },
@@ -3338,7 +3340,8 @@ window.qBittorrent.DynamicTable ??= (() => {
 
             this.columns["timestamp"].updateTd = function(td, row) {
                 const date = new Date(this.getRowValue(row) * 1000).toLocaleString();
-                td.set({ text: date, title: date });
+                td.textContent = date;
+                td.title = date;
             };
 
             this.columns["blocked"].updateTd = function(td, row) {
@@ -3351,7 +3354,8 @@ window.qBittorrent.DynamicTable ??= (() => {
                     status = "QBT_TR(Banned)QBT_TR[CONTEXT=ExecutionLogWidget]";
                     addClass = "peerBanned";
                 }
-                td.set({ text: status, title: status });
+                td.textContent = status;
+                td.title = status;
                 td.closest("tr").className = `logTableRow${addClass}`;
             };
         },
