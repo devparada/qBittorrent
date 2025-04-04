@@ -659,7 +659,13 @@ void Application::runExternalProgram(const QString &programTemplate, const BitTo
     {
         // strip redundant quotes
         if (arg.startsWith(u'"') && arg.endsWith(u'"'))
-            arg = arg.mid(1, (arg.size() - 2));
+        {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+            arg.slice(1, (arg.size() - 2));
+#else
+            arg.removeLast().removeFirst();
+#endif
+        }
 
         arg = replaceVariables(arg);
     }
@@ -668,6 +674,9 @@ void Application::runExternalProgram(const QString &programTemplate, const BitTo
     QProcess proc;
     proc.setProgram(command);
     proc.setArguments(args);
+#if defined(Q_OS_UNIX) && (QT_VERSION >= QT_VERSION_CHECK(6, 6, 0))
+    proc.setUnixProcessParameters(QProcess::UnixProcessFlag::CloseFileDescriptors);
+#endif
 
     if (proc.startDetached())
     {
@@ -920,10 +929,10 @@ int Application::exec()
                 m_desktopIntegration->showNotification(tr("Torrent added"), tr("'%1' was added.", "e.g: xxx.avi was added.").arg(torrent->name()));
         });
         connect(m_addTorrentManager, &AddTorrentManager::addTorrentFailed, this
-                , [this](const QString &source, const QString &reason)
+                , [this](const QString &source, const BitTorrent::AddTorrentError &reason)
         {
             m_desktopIntegration->showNotification(tr("Add torrent failed")
-                    , tr("Couldn't add torrent '%1', reason: %2.").arg(source, reason));
+                    , tr("Couldn't add torrent '%1', reason: %2.").arg(source, reason.message));
         });
 
         disconnect(m_desktopIntegration, &DesktopIntegration::activationRequested, this, &Application::createStartupProgressDialog);

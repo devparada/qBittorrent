@@ -1,7 +1,6 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2023  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2018  Thomas Piccirello <thomas.piccirello@gmail.com>
+ * Copyright (C) 2025  Vladimir Golovnev <glassez@yandex.ru>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -29,24 +28,22 @@
 
 #pragma once
 
-#include <QObject>
+#include <QMetaType>
+#include <QString>
 
-class FreeDiskSpaceChecker final : public QObject
+namespace BitTorrent
 {
-    Q_OBJECT
-    Q_DISABLE_COPY_MOVE(FreeDiskSpaceChecker)
+    struct AddTorrentError
+    {
+        enum Kind
+        {
+            DuplicateTorrent,
+            Other
+        };
 
-public:
-    using QObject::QObject;
+        Kind kind = Other;
+        QString message;
+    };
+}
 
-    qint64 lastResult() const;
-
-public slots:
-    void check();
-
-signals:
-    void checked(qint64 freeSpaceSize);
-
-private:
-    qint64 m_lastResult = 0;
-};
+Q_DECLARE_METATYPE(BitTorrent::AddTorrentError)

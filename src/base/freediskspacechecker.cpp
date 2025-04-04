@@ -1,7 +1,7 @@
 /*
  * Bittorrent Client using Qt and libtorrent.
- * Copyright (C) 2015-2025  Vladimir Golovnev <glassez@yandex.ru>
- * Copyright (C) 2012  Christophe Dumez <chris@qbittorrent.org>
+ * Copyright (C) 2023-2025  Vladimir Golovnev <glassez@yandex.ru>
+ * Copyright (C) 2018  Thomas Piccirello <thomas.piccirello@gmail.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -27,51 +27,26 @@
  * exception statement from your version.
  */
 
-#pragma once
+#include "freediskspacechecker.h"
 
-#include <QDateTime>
-#include <QList>
-#include <QObject>
-#include <QSet>
-#include <QString>
-#include <QVariantHash>
+#include "base/utils/fs.h"
 
-class QXmlStreamReader;
-
-namespace RSS::Private
+FreeDiskSpaceChecker::FreeDiskSpaceChecker(const Path &pathToCheck)
+    : m_pathToCheck {pathToCheck}
 {
-    struct ParsingResult
-    {
-        QString error;
-        QString lastBuildDate;
-        QString title;
-        QList<QVariantHash> articles;
-    };
-
-    class Parser final : public QObject
-    {
-        Q_OBJECT
-        Q_DISABLE_COPY_MOVE(Parser)
-
-    public:
-        explicit Parser(const QString &lastBuildDate);
-        void parse(const QByteArray &feedData);
-
-    signals:
-        void finished(const RSS::Private::ParsingResult &result);
-
-    private:
-        void parseRssArticle(QXmlStreamReader &xml);
-        void parseRSSChannel(QXmlStreamReader &xml);
-        void parseAtomArticle(QXmlStreamReader &xml);
-        void parseAtomChannel(QXmlStreamReader &xml);
-        void addArticle(QVariantHash article);
-
-        QDateTime m_fallbackDate;
-        QString m_baseUrl;
-        ParsingResult m_result;
-        QSet<QString> m_articleIDs;
-    };
 }
 
-Q_DECLARE_METATYPE(RSS::Private::ParsingResult)
+Path FreeDiskSpaceChecker::pathToCheck() const
+{
+    return m_pathToCheck;
+}
+
+void FreeDiskSpaceChecker::setPathToCheck(const Path &newPathToCheck)
+{
+    m_pathToCheck = newPathToCheck;
+}
+
+void FreeDiskSpaceChecker::check()
+{
+    emit checked(Utils::Fs::freeDiskSpaceOnPath(m_pathToCheck));
+}
