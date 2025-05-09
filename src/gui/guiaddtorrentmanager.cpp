@@ -33,7 +33,6 @@
 
 #include "base/bittorrent/session.h"
 #include "base/bittorrent/torrentdescriptor.h"
-#include "base/logger.h"
 #include "base/net/downloadmanager.h"
 #include "base/preferences.h"
 #include "base/torrentfileguard.h"
@@ -80,6 +79,15 @@ GUIAddTorrentManager::GUIAddTorrentManager(IGUIApplication *app, BitTorrent::Ses
     : GUIApplicationComponent(app, session, parent)
 {
     connect(btSession(), &BitTorrent::Session::metadataDownloaded, this, &GUIAddTorrentManager::onMetadataDownloaded);
+}
+
+GUIAddTorrentManager::~GUIAddTorrentManager()
+{
+    for (AddNewTorrentDialog *dialog : asConst(m_dialogs))
+    {
+        dialog->disconnect(this);
+        dialog->reject();
+    }
 }
 
 bool GUIAddTorrentManager::addTorrent(const QString &source, const BitTorrent::AddTorrentParams &params, const AddTorrentOption option)
