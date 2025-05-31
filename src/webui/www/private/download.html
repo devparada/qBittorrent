@@ -6,12 +6,9 @@
     <title>QBT_TR(Add Torrent Links)QBT_TR[CONTEXT=downloadFromURL]</title>
     <link rel="stylesheet" href="css/style.css?v=${CACHEID}" type="text/css">
     <link rel="stylesheet" href="css/Window.css?v=${CACHEID}" type="text/css">
-    <script src="scripts/lib/MooTools-Core-1.6.0-compat-compressed.js"></script>
-    <script src="scripts/lib/MooTools-More-1.6.0-compat-compressed.js"></script>
     <script src="scripts/localpreferences.js?v=${CACHEID}"></script>
     <script src="scripts/color-scheme.js?v=${CACHEID}"></script>
     <script src="scripts/download.js?v=${CACHEID}"></script>
-    <script src="scripts/misc.js?locale=${LANG}&v=${CACHEID}"></script>
     <script src="scripts/pathAutofill.js?v=${CACHEID}"></script>
 </head>
 
@@ -172,7 +169,7 @@
 
         let submitted = false;
 
-        document.getElementById("downloadForm").addEventListener("submit", () => {
+        document.getElementById("downloadForm").addEventListener("submit", (event) => {
             document.getElementById("startTorrentHidden").value = document.getElementById("startTorrent").checked ? "false" : "true";
 
             document.getElementById("dlLimitHidden").value = Number(document.getElementById("dlLimitText").value) * 1024;
@@ -182,7 +179,7 @@
             submitted = true;
         });
 
-        document.getElementById("download_frame").addEventListener("load", () => {
+        document.getElementById("download_frame").addEventListener("load", (event) => {
             if (submitted)
                 window.parent.qBittorrent.Client.closeFrameWindow(window);
         });

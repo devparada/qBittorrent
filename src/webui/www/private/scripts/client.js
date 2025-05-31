@@ -161,7 +161,10 @@ let setTagFilter = () => {};
 
 /* Trackers filter */
 const TRACKERS_ALL = "b4af0e4c-e76d-4bac-a392-46cbc18d9655";
+const TRACKERS_ANNOUNCE_ERROR = "d0b4cad2-9f6f-4e7f-8d4b-f80a103dd436";
+const TRACKERS_ERROR = "b551cfc3-64e9-4393-bc88-5d6ea2fab5cc";
 const TRACKERS_TRACKERLESS = "e24bd469-ea22-404c-8e2e-a17c82f37ea0";
+const TRACKERS_WARNING = "82a702c5-210c-412b-829f-97632d7557e9";
 
 // Map<trackerHost: String, Map<trackerURL: String, torrents: Set>>
 const trackerMap = new Map();
@@ -174,7 +177,9 @@ let selectedStatus = LocalPreferences.get("selected_filter", "all");
 let setStatusFilter = () => {};
 let toggleFilterDisplay = () => {};
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", (event) => {
+    window.qBittorrent.LocalPreferences.upgrade();
+
     let isSearchPanelLoaded = false;
     let isLogPanelLoaded = false;
     let isRssPanelLoaded = false;
@@ -497,7 +502,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (!categoryList)
             return;
 
-        [...categoryList.children].forEach((el) => { el.destroy(); });
+        [...categoryList.children].forEach((el) => { el.remove(); });
 
         const categoryItemTemplate = document.getElementById("categoryFilterItem");
 
@@ -618,7 +623,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (tagFilterList === null)
             return;
 
-        [...tagFilterList.children].forEach((el) => { el.destroy(); });
+        [...tagFilterList.children].forEach((el) => { el.remove(); });
 
         const tagItemTemplate = document.getElementById("tagFilterItem");
 
@@ -671,7 +676,7 @@ window.addEventListener("DOMContentLoaded", () => {
         if (trackerFilterList === null)
             return;
 
-        [...trackerFilterList.children].forEach((el) => { el.destroy(); });
+        [...trackerFilterList.children].forEach((el) => { el.remove(); });
 
         const trackerItemTemplate = document.getElementById("trackerFilterItem");
 
@@ -683,17 +688,41 @@ window.addEventListener("DOMContentLoaded", () => {
             const span = trackerFilterItem.firstElementChild;
             span.lastChild.textContent = `${text} (${count})`;
 
+            switch (host) {
+                case TRACKERS_ANNOUNCE_ERROR:
+                case TRACKERS_ERROR:
+                    span.lastElementChild.src = "images/tracker-error.svg";
+                    break;
+                case TRACKERS_TRACKERLESS:
+                    span.lastElementChild.src = "images/trackerless.svg";
+                    break;
+                case TRACKERS_WARNING:
+                    span.lastElementChild.src = "images/tracker-warning.svg";
+                    break;
+            }
+
             return trackerFilterItem;
         };
 
-        let trackerlessTorrentsCount = 0;
-        for (const { full_data: { trackers_count: trackersCount } } of torrentsTable.getRowValues()) {
-            if (trackersCount === 0)
-                trackerlessTorrentsCount += 1;
+        let trackerlessCount = 0;
+        let trackerErrorCount = 0;
+        let announceErrorCount = 0;
+        let trackerWarningCount = 0;
+        for (const { full_data } of torrentsTable.getRowValues()) {
+            if (full_data.trackers_count === 0)
+                trackerlessCount += 1;
+
+            // counting bools by adding them
+            trackerErrorCount += full_data.has_tracker_error;
+            announceErrorCount += full_data.has_other_announce_error;
+            trackerWarningCount += full_data.has_tracker_warning;
         }
 
         trackerFilterList.appendChild(createLink(TRACKERS_ALL, "QBT_TR(All)QBT_TR[CONTEXT=TrackerFiltersList]", torrentsTable.getRowSize()));
-        trackerFilterList.appendChild(createLink(TRACKERS_TRACKERLESS, "QBT_TR(Trackerless)QBT_TR[CONTEXT=TrackerFiltersList]", trackerlessTorrentsCount));
+        trackerFilterList.appendChild(createLink(TRACKERS_TRACKERLESS, "QBT_TR(Trackerless)QBT_TR[CONTEXT=TrackerFiltersList]", trackerlessCount));
+        trackerFilterList.appendChild(createLink(TRACKERS_ERROR, "QBT_TR(Tracker error)QBT_TR[CONTEXT=TrackerFiltersList]", trackerErrorCount));
+        trackerFilterList.appendChild(createLink(TRACKERS_ANNOUNCE_ERROR, "QBT_TR(Other error)QBT_TR[CONTEXT=TrackerFiltersList]", announceErrorCount));
+        trackerFilterList.appendChild(createLink(TRACKERS_WARNING, "QBT_TR(Warning)QBT_TR[CONTEXT=TrackerFiltersList]", trackerWarningCount));
 
         // Sort trackers by hostname
         const sortedList = [];
@@ -991,9 +1020,9 @@ window.addEventListener("DOMContentLoaded", () => {
                 lastExternalAddressLabel = "QBT_TR(External IPs: %1, %2)QBT_TR[CONTEXT=HttpServer]";
             else if (hasIPv4Address || hasIPv6Address)
                 lastExternalAddressLabel = "QBT_TR(External IP: %1%2)QBT_TR[CONTEXT=HttpServer]";
-            // replace in reverse order ('%2' before '%1') in case address contains a % character.
-            // for example, see https://en.wikipedia.org/wiki/IPv6_address#Scoped_literal_IPv6_addresses_(with_zone_index)
-            externalIPsElement.textContent = lastExternalAddressLabel.replace("%2", lastExternalAddressV6).replace("%1", lastExternalAddressV4);
+            // https://en.wikipedia.org/wiki/IPv6_address#Scoped_literal_IPv6_addresses_(with_zone_index)
+            lastExternalAddressLabel = lastExternalAddressLabel.replace("%1", lastExternalAddressV4).replace("%2", lastExternalAddressV6);
+            externalIPsElement.textContent = lastExternalAddressLabel;
             externalIPsElement.classList.remove("invisible");
             externalIPsElement.previousElementSibling.classList.remove("invisible");
         }
@@ -1095,7 +1124,7 @@ window.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    document.getElementById("alternativeSpeedLimits").addEventListener("click", () => {
+    document.getElementById("alternativeSpeedLimits").addEventListener("click", (event) => {
         // Change icon immediately to give some feedback
         updateAltSpeedIcon(!alternativeSpeedLimits);
 
@@ -1114,8 +1143,8 @@ window.addEventListener("DOMContentLoaded", () => {
             });
     });
 
-    document.getElementById("DlInfos").addEventListener("click", () => { globalDownloadLimitFN(); });
-    document.getElementById("UpInfos").addEventListener("click", () => { globalUploadLimitFN(); });
+    document.getElementById("DlInfos").addEventListener("click", (event) => { globalDownloadLimitFN(); });
+    document.getElementById("UpInfos").addEventListener("click", (event) => { globalUploadLimitFN(); });
 
     document.getElementById("showTopToolbarLink").addEventListener("click", (e) => {
         showTopToolbar = !showTopToolbar;
@@ -1260,7 +1289,7 @@ window.addEventListener("DOMContentLoaded", () => {
             document.getElementById("mainWindowTabs").classList.add("invisible");
     };
 
-    document.getElementById("StatisticsLink").addEventListener("click", () => { StatisticsLinkFN(); });
+    document.getElementById("StatisticsLink").addEventListener("click", (event) => { StatisticsLinkFN(); });
 
     // main window tabs
 
@@ -1618,7 +1647,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
     // listen for changes to torrentsFilterInput
     let torrentsFilterInputTimer = -1;
-    document.getElementById("torrentsFilterInput").addEventListener("input", () => {
+    document.getElementById("torrentsFilterInput").addEventListener("input", (event) => {
         clearTimeout(torrentsFilterInputTimer);
         torrentsFilterInputTimer = setTimeout(() => {
             torrentsFilterInputTimer = -1;
@@ -1628,10 +1657,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("torrentsFilterToolbar").addEventListener("change", (e) => { torrentsTable.updateTable(); });
 
-    document.getElementById("transfersTabLink").addEventListener("click", () => { showTransfersTab(); });
-    document.getElementById("searchTabLink").addEventListener("click", () => { showSearchTab(); });
-    document.getElementById("rssTabLink").addEventListener("click", () => { showRssTab(); });
-    document.getElementById("logTabLink").addEventListener("click", () => { showLogTab(); });
+    document.getElementById("transfersTabLink").addEventListener("click", (event) => { showTransfersTab(); });
+    document.getElementById("searchTabLink").addEventListener("click", (event) => { showSearchTab(); });
+    document.getElementById("rssTabLink").addEventListener("click", (event) => { showRssTab(); });
+    document.getElementById("logTabLink").addEventListener("click", (event) => { showLogTab(); });
     updateTabDisplay();
 
     const registerDragAndDrop = () => {
@@ -1793,7 +1822,7 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-window.addEventListener("load", async () => {
+window.addEventListener("load", async (event) => {
     await window.qBittorrent.Client.initializeCaches();
 
     // switch to previously used tab

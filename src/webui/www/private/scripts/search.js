@@ -128,7 +128,7 @@ window.qBittorrent.Search ??= (() => {
 
         // listen for changes to searchInNameFilter
         let searchInNameFilterTimer = -1;
-        document.getElementById("searchInNameFilter").addEventListener("input", () => {
+        document.getElementById("searchInNameFilter").addEventListener("input", (event) => {
             clearTimeout(searchInNameFilterTimer);
             searchInNameFilterTimer = setTimeout(() => {
                 searchInNameFilterTimer = -1;
@@ -248,7 +248,7 @@ window.qBittorrent.Search ??= (() => {
         if (state && state.running)
             stopSearch(searchId);
 
-        tab.destroy();
+        tab.remove();
 
         fetch("api/v2/search/delete", {
             method: "POST",

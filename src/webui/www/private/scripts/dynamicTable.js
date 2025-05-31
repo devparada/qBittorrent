@@ -65,7 +65,6 @@ window.qBittorrent.DynamicTable ??= (() => {
     };
 
     let DynamicTableHeaderContextMenuClass = null;
-    let progressColumnWidth = -1;
 
     class DynamicTable {
         setup(dynamicTableDivId, dynamicTableFixedHeaderDivId, contextMenu, useVirtualList = false) {
@@ -900,7 +899,7 @@ window.qBittorrent.DynamicTable ??= (() => {
                 const rowPos = rows.length;
 
                 while ((rowPos < trs.length) && (trs.length > 0))
-                    trs.pop().destroy();
+                    trs.pop().remove();
             }
         }
 
@@ -1022,7 +1021,7 @@ window.qBittorrent.DynamicTable ??= (() => {
             }
             else {
                 const tr = this.getTrByRowId(rowId);
-                tr?.destroy();
+                tr?.remove();
             }
         }
 
@@ -1034,7 +1033,7 @@ window.qBittorrent.DynamicTable ??= (() => {
             }
             else {
                 for (const tr of this.getTrs())
-                    tr.destroy();
+                    tr.remove();
             }
         }
 
@@ -1358,34 +1357,14 @@ window.qBittorrent.DynamicTable ??= (() => {
 
                 const div = td.firstElementChild;
                 if (div !== null) {
-                    if (td.resized) {
-                        td.resized = false;
-                        div.setWidth(progressColumnWidth - 5);
-                    }
                     if (div.getValue() !== progressFormatted)
                         div.setValue(progressFormatted);
                 }
                 else {
-                    if (progressColumnWidth < 0)
-                        progressColumnWidth = td.offsetWidth;
-                    td.append(new window.qBittorrent.ProgressBar.ProgressBar(progressFormatted, {
-                        width: progressColumnWidth - 5
-                    }));
-                    td.resized = false;
+                    td.append(new window.qBittorrent.ProgressBar.ProgressBar(progressFormatted));
                 }
             };
             this.columns["progress"].staticWidth = 100;
-            this.columns["progress"].onResize = function(columnName) {
-                const pos = this.getColumnPos(columnName);
-                progressColumnWidth = -1;
-                for (const tr of this.getTrs()) {
-                    const td = this.getRowCells(tr)[pos];
-                    if (progressColumnWidth < 0)
-                        progressColumnWidth = td.offsetWidth;
-                    td.resized = true;
-                    this.columns[columnName].updateTd(td, this.getRow(tr.rowId));
-                }
-            }.bind(this);
 
             // num_seeds
             this.columns["num_seeds"].updateTd = function(td, row) {
@@ -1579,7 +1558,7 @@ window.qBittorrent.DynamicTable ??= (() => {
             };
         }
 
-        applyFilter(row, filterName, category, tag, tracker, filterTerms) {
+        applyFilter(row, filterName, category, tag, trackerHost, filterTerms) {
             const state = row["full_data"].state;
             let inactive = false;
 
@@ -1687,17 +1666,32 @@ window.qBittorrent.DynamicTable ??= (() => {
                 }
             }
 
-            switch (tracker) {
+            switch (trackerHost) {
                 case TRACKERS_ALL:
                     break; // do nothing
+
+                case TRACKERS_ANNOUNCE_ERROR:
+                    if (!row["full_data"]["has_other_announce_error"])
+                        return false;
+                    break;
+
+                case TRACKERS_ERROR:
+                    if (!row["full_data"]["has_tracker_error"])
+                        return false;
+                    break;
 
                 case TRACKERS_TRACKERLESS:
                     if (row["full_data"].trackers_count > 0)
                         return false;
                     break;
 
+                case TRACKERS_WARNING:
+                    if (!row["full_data"]["has_tracker_warning"])
+                        return false;
+                    break;
+
                 default: {
-                    const trackerTorrentMap = trackerMap.get(tracker);
+                    const trackerTorrentMap = trackerMap.get(trackerHost);
                     if (trackerTorrentMap !== undefined) {
                         let found = false;
                         for (const torrents of trackerTorrentMap.values()) {
@@ -2185,6 +2179,7 @@ window.qBittorrent.DynamicTable ??= (() => {
         prevFilteredRows = [];
         prevSortedColumn = null;
         prevReverseSort = null;
+        prevCheckboxNum = null;
         fileTree = new window.qBittorrent.FileTree.FileTree();
 
         setupVirtualList() {
@@ -2344,13 +2339,41 @@ window.qBittorrent.DynamicTable ??= (() => {
                     checkbox.type = "checkbox";
                     checkbox.className = "RenamingCB";
                     checkbox.addEventListener("click", (e) => {
-                        const id = e.target.dataset.id;
-                        const node = that.getNode(id);
-                        node.checked = e.target.checked ? 0 : 1;
-                        node.full_data.checked = node.checked;
-                        that.updateGlobalCheckbox();
-                        that.onRowSelectionChange(node);
                         e.stopPropagation();
+                        const targetId = e.target.dataset.id;
+                        const ids = [];
+                        // when holding shift, set all files between the previously selected one and the clicked one
+                        if (e.shiftKey && (that.prevCheckboxNum !== null) && (targetId !== that.prevCheckboxNum)) {
+                            const targetState = that.tableBody.querySelector(`.RenamingCB[data-id="${that.prevCheckboxNum}"]`).checked;
+                            const checkboxes = that.tableBody.getElementsByClassName("RenamingCB");
+                            let started = false;
+                            for (const cb of checkboxes) {
+                                const currId = cb.dataset.id;
+                                if ((currId === targetId) || (currId === that.prevCheckboxNum)) {
+                                    if (started) {
+                                        ids.push(currId);
+                                        cb.checked = targetState;
+                                        break;
+                                    }
+                                    started = true;
+                                }
+                                if (started) {
+                                    ids.push(currId);
+                                    cb.checked = targetState;
+                                }
+                            }
+                        }
+                        else {
+                            ids.push(targetId);
+                        }
+                        for (const id of ids) {
+                            const node = that.getNode(id);
+                            node.checked = e.target.checked ? 0 : 1;
+                            node.full_data.checked = node.checked;
+                        }
+                        that.updateGlobalCheckbox();
+                        that.onRowSelectionChange(that.getNode(targetId));
+                        that.prevCheckboxNum = targetId;
                     });
                     checkbox.indeterminate = false;
                     td.append(checkbox);
@@ -2852,14 +2875,10 @@ window.qBittorrent.DynamicTable ??= (() => {
                 const value = Number(this.getRowValue(row));
 
                 const progressBar = td.firstElementChild;
-                if (progressBar === null) {
-                    td.append(new window.qBittorrent.ProgressBar.ProgressBar(value, {
-                        width: 80
-                    }));
-                }
-                else {
+                if (progressBar === null)
+                    td.append(new window.qBittorrent.ProgressBar.ProgressBar(value));
+                else
                     progressBar.setValue(value);
-                }
             };
             this.columns["progress"].staticWidth = 100;
 
@@ -3760,34 +3779,14 @@ window.qBittorrent.DynamicTable ??= (() => {
 
                 const div = td.firstElementChild;
                 if (div !== null) {
-                    if (td.resized) {
-                        td.resized = false;
-                        div.setWidth(progressColumnWidth - 5);
-                    }
                     if (div.getValue() !== progress)
                         div.setValue(progress);
                 }
                 else {
-                    if (progressColumnWidth < 0)
-                        progressColumnWidth = td.offsetWidth;
-                    td.append(new window.qBittorrent.ProgressBar.ProgressBar(progress, {
-                        width: progressColumnWidth - 5
-                    }));
-                    td.resized = false;
+                    td.append(new window.qBittorrent.ProgressBar.ProgressBar(progress));
                 }
             };
             this.columns["progress"].staticWidth = 100;
-            this.columns["progress"].onResize = function(columnName) {
-                const pos = this.getColumnPos(columnName);
-                progressColumnWidth = -1;
-                for (const tr of this.getTrs()) {
-                    const td = this.getRowCells(tr)[pos];
-                    if (progressColumnWidth < 0)
-                        progressColumnWidth = td.offsetWidth;
-                    td.resized = true;
-                    this.columns[columnName].updateTd(td, this.getRow(tr.rowId));
-                }
-            }.bind(this);
 
             // piece_size
             this.columns["piece_size"].updateTd = function(td, row) {

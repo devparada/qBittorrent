@@ -385,6 +385,7 @@
                 <li>QBT_TR(%I: Info hash v1)QBT_TR[CONTEXT=OptionsDialog]</li>
                 <li>QBT_TR(%J: Info hash v2)QBT_TR[CONTEXT=OptionsDialog]</li>
                 <li>QBT_TR(%K: Torrent ID)QBT_TR[CONTEXT=OptionsDialog]</li>
+                <li>QBT_TR(%M: Comment)QBT_TR[CONTEXT=OptionsDialog]</li>
             </ul>
             QBT_TR(Tip: Encapsulate parameter with quotation marks to avoid text being cut off at whitespace (e.g., "%N"))QBT_TR[CONTEXT=OptionsDialog]
         </div>
@@ -1159,7 +1160,7 @@ Use ';' to split multiple entries. Can use wildcard '*'.)QBT_TR[CONTEXT=OptionsD
                         <label for="memoryWorkingSetLimit">QBT_TR(Physical memory (RAM) usage limit:)QBT_TR[CONTEXT=OptionsDialog]&nbsp;<a href="https://wikipedia.org/wiki/Working_set" target="_blank">(?)</a></label>
                     </td>
                     <td>
-                        <input type="text" id="memoryWorkingSetLimit" style="width: 15em;" title="QBT_TR(This option is less effective on Linux)QBT_TR[CONTEXT=OptionsDialog]">&nbsp;&nbsp;QBT_TR(MiB)QBT_TR[CONTEXT=OptionsDialog]
+                        <input type="text" id="memoryWorkingSetLimit" style="width: 15em;">&nbsp;&nbsp;QBT_TR(MiB)QBT_TR[CONTEXT=OptionsDialog]
                     </td>
                 </tr>
                 <tr>
@@ -2132,7 +2133,7 @@ Use ';' to split multiple entries. Can use wildcard '*'.)QBT_TR[CONTEXT=OptionsD
 
         // Advanced Tab
         const updateNetworkInterfaces = (default_iface, default_iface_name) => {
-            [...document.getElementById("networkInterface").children].forEach((el) => { el.destroy(); });
+            [...document.getElementById("networkInterface").children].forEach((el) => { el.remove(); });
 
             fetch("api/v2/app/networkInterfaceList", {
                     method: "GET",
@@ -2161,7 +2162,7 @@ Use ';' to split multiple entries. Can use wildcard '*'.)QBT_TR[CONTEXT=OptionsD
         };
 
         const updateInterfaceAddresses = (iface, default_addr) => {
-            [...document.getElementById("optionalIPAddressToBind").children].forEach((el) => { el.destroy(); });
+            [...document.getElementById("optionalIPAddressToBind").children].forEach((el) => { el.remove(); });
 
             const url = new URL("api/v2/app/networkInterfaceAddressList", window.location);
             url.search = new URLSearchParams({
@@ -3164,10 +3165,13 @@ Use ';' to split multiple entries. Can use wildcard '*'.)QBT_TR[CONTEXT=OptionsD
                     document.getElementById("diskIOWriteModeWriteThrough").style.display = "none";
             }
 
+            if ((buildInfo.platform === "linux") || (buildInfo.platform === "macos"))
+                document.getElementById("rowMemoryWorkingSetLimit").style.display = "none";
+
             if ((buildInfo.platform !== "macos") && (buildInfo.platform !== "windows"))
                 document.getElementById("rowMarkOfTheWeb").style.display = "none";
 
-            document.getElementById("networkInterface").addEventListener("change", function() {
+            document.getElementById("networkInterface").addEventListener("change", function(event) {
                 updateInterfaceAddresses(this.value, "");
             });
 
