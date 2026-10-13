@@ -27,13 +27,13 @@ LangString inst_unist ${LANG_GALICIAN} "Desinstalando a versión anterior."
 ;LangString launch_qbt ${LANG_ENGLISH} "Launch qBittorrent."
 LangString launch_qbt ${LANG_GALICIAN} "Iniciar qBittorrent."
 ;LangString inst_requires_64bit ${LANG_ENGLISH} "This installer works only in 64-bit Windows versions."
-LangString inst_requires_64bit ${LANG_GALICIAN} "This installer works only in 64-bit Windows versions."
+LangString inst_requires_64bit ${LANG_GALICIAN} "Este instalador só funciona en versións de 64 bits de Windows."
 ;LangString inst_requires_win10 ${LANG_ENGLISH} "This installer requires at least Windows 10 (1809) / Windows Server 2019."
-LangString inst_requires_win10 ${LANG_GALICIAN}  "This installer requires at least Windows 10 (1809) / Windows Server 2019."
+LangString inst_requires_win10 ${LANG_GALICIAN}  "Este instalador require polo menos Windows 10 (1809) / Windows Server 2019."
 ;LangString inst_uninstall_link_description ${LANG_ENGLISH} "Uninstall qBittorrent"
-LangString inst_uninstall_link_description ${LANG_GALICIAN} "Uninstall qBittorrent"
+LangString inst_uninstall_link_description ${LANG_GALICIAN} "Desistalar qBittorrent"
 ;LangString inst_arch_mismatch_arm64_on_x64 ${LANG_ENGLISH} "This ARM64 version of qBittorrent cannot run on x64 systems. Please download the x64 installer."
-LangString inst_arch_mismatch_arm64_on_x64 ${LANG_GALICIAN} "This ARM64 version of qBittorrent cannot run on x64 systems. Please download the x64 installer."
+LangString inst_arch_mismatch_arm64_on_x64 ${LANG_GALICIAN} "Esta versión ARM64 de qBittorrent non pode executarse en sistemas x64. Descarga o instalador x64."
 
 ;------------------------------------
 ;Uninstaller strings
